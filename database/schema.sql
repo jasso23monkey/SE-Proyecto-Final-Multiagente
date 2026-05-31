@@ -50,3 +50,12 @@ CREATE TABLE IF NOT EXISTS Cotizaciones_Ordenes (
     estado_orden TEXT NOT NULL,         -- 'VIABLE_CON_STOCK', 'PENDIENTE_PROVEEDOR', 'RECHAZADO'
     reporte_explicabilidad TEXT         -- Output del Agente 3 detallando el razonamiento técnico
 );
+
+-- 5. TABLA: Inventario de Herramientas y Utillaje
+CREATE TABLE IF NOT EXISTS Inventario_Herramientas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tipo_herramienta TEXT NOT NULL,     -- Ej. 'Broca de Centro', 'Broca Helicoidal', 'Buril de Pastilla', 'Buril HSS'
+    medida REAL NOT NULL,               -- Dimensión en pulgadas (Ej. 0.375 para la de 3/8", 0.000 si no aplica como broca de centro)
+    unidades_disponibles INTEGER NOT NULL, -- Cantidad en el cajón de herramientas
+    estado_herramienta TEXT NOT NULL    -- 'DISPONIBLE', 'REQUERIR_AFILADO', 'AGOTADO'
+);
