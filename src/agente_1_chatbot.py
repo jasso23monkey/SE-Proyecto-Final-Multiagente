@@ -1,254 +1,239 @@
-from datetime import datetime
+from src import db
 
 
-def obtener_mensaje_bienvenida():
+def obtener_mensaje_bienvenida() -> str:
     return """
 👋 **Bienvenido a ForgeFlow ERP**
 
 Soy el **Agente 1 - Atención al Cliente**.
 
-Por ahora puedo ayudarte a iniciar solicitudes, consultar comandos del sistema y simular algunos flujos básicos del taller.
+En este segundo commit ya puedo consultar información real de la base de datos y ayudarte a ubicar módulos del sistema.
 
-Puedes escribir comandos como:
+Comandos principales:
 
-- `/help` → Ver comandos disponibles.
+- `/help` → Ver ayuda.
+- `/inventario` → Resumen real del inventario.
+- `/materiales` → Ver materiales registrados.
+- `/herramientas` → Ver herramientas registradas.
+- `/maquinas` → Ver máquinas del taller.
+- `/proveedores` → Ver proveedores.
 - `/cotizaciones` → Ver cotizaciones pendientes por aprobar.
-- `/produccion` → Ver cotizaciones aprobadas listas para producción.
-- `/inventario` → Consultar opciones de inventario.
-- `/nueva_cotizacion` → Iniciar una cotización.
-- `/limpiar` → Limpiar el historial del chat.
+- `/produccion` → Ver cotizaciones aprobadas o en producción.
+- `/limpiar` → Limpiar el chat.
 
-También puedes escribirme en lenguaje natural, por ejemplo:
-
-> Necesito realizar una cotización  
-> Quiero ver las cotizaciones pendientes  
-> Muéstrame lo que está en producción  
-> Necesito revisar el inventario
+Para agregar o actualizar datos usa la pestaña **Inventario y gestión**.
 """
 
 
-def obtener_ayuda():
+def obtener_ayuda() -> str:
     return """
 📌 **Comandos disponibles**
 
 | Comando | Función |
 |---|---|
 | `/help` | Muestra esta ayuda. |
+| `/inventario` | Muestra resumen real de inventario y alertas. |
+| `/materiales` | Lista materiales registrados. |
+| `/herramientas` | Lista herramientas registradas. |
+| `/maquinas` | Lista máquinas registradas. |
+| `/proveedores` | Lista proveedores registrados. |
 | `/cotizaciones` | Muestra cotizaciones pendientes por aprobar. |
-| `/produccion` | Muestra cotizaciones aprobadas/listas para producción. |
-| `/inventario` | Muestra opciones relacionadas con inventario. |
-| `/nueva_cotizacion` | Inicia el flujo para una nueva cotización. |
+| `/produccion` | Muestra órdenes aprobadas o en producción. |
 | `/limpiar` | Limpia el historial del chat. |
 
-También puedes usar lenguaje natural:
+También puedes escribir frases como:
 
-- "Necesito hacer una cotización"
-- "Quiero ver cotizaciones pendientes"
-- "Muéstrame la producción"
-- "Revisa el inventario"
+- "Quiero ver el inventario"
+- "Muéstrame las herramientas"
+- "Necesito revisar cotizaciones pendientes"
+- "Qué trabajos están en producción"
 """
 
 
-def obtener_cotizaciones_demo():
-    return """
-📝 **Cotizaciones pendientes por aprobar**
+def tabla_markdown(filas: list[dict], columnas: list[str], max_filas: int = 10) -> str:
+    if not filas:
+        return "No hay registros para mostrar."
 
-Estas son cotizaciones de ejemplo para el prototipo:
+    filas = filas[:max_filas]
+    encabezado = "| " + " | ".join(columnas) + " |"
+    separador = "| " + " | ".join(["---"] * len(columnas)) + " |"
+    cuerpo = []
 
-| ID | Cliente | Pieza | Estado |
-|---|---|---|---|
-| COT-001 | Taller Mecánico López | Engrane recto | Pendiente de aprobación |
-| COT-002 | FlexoPrint GDL | Rodillo de aluminio | Pendiente de aprobación |
-| COT-003 | Empaques Rivera | Buje de bronce ranurado | Pendiente de aprobación |
+    for fila in filas:
+        valores = []
+        for columna in columnas:
+            valor = fila.get(columna, "")
+            valores.append(str(valor if valor is not None else ""))
+        cuerpo.append("| " + " | ".join(valores) + " |")
 
-⚠️ En el siguiente commit, esta información se tomará directamente desde la base de datos.
-"""
+    extra = ""
+    if len(filas) == max_filas:
+        extra = "\n\n_Se muestran los primeros registros. Para ver todo, usa la pestaña de gestión._"
 
-
-def obtener_produccion_demo():
-    return """
-🏭 **Cotizaciones aprobadas / producción**
-
-Estas órdenes son de ejemplo para el prototipo:
-
-| ID | Cliente | Trabajo | Estado |
-|---|---|---|---|
-| ORD-001 | Industrias Ramírez | Rodillo completo | En producción |
-| ORD-002 | Maquinados del Centro | Engrane helicoidal | Programado |
-| ORD-003 | FlexoPrint GDL | Yunque completo | En espera de material |
-
-⚠️ En el siguiente commit, esta información se conectará con SQLite.
-"""
+    return "\n".join([encabezado, separador] + cuerpo) + extra
 
 
-def obtener_inventario_demo():
-    return """
-📦 **Módulo de inventario**
+def respuesta_inventario() -> str:
+    resumen = db.obtener_resumen_sistema()
+    alertas = db.obtener_alertas_inventario()
 
-En este prototipo inicial puedo reconocer solicitudes relacionadas con:
+    texto = "📦 **Resumen real del sistema**\n\n"
+    texto += "| Módulo | Registros |\n|---|---:|\n"
+    for tabla, total in resumen.items():
+        texto += f"| {tabla} | {total} |\n"
 
-- Materiales del taller.
-- Herramientas.
-- Máquinas.
-- Proveedores.
+    texto += "\n⚠️ **Alertas de inventario**\n\n"
+    texto += f"- Materiales en bajo stock o agotados: **{len(alertas['materiales'])}**\n"
+    texto += f"- Herramientas con alerta: **{len(alertas['herramientas'])}**\n"
 
-Ejemplos de mensajes:
-
-> Quiero revisar el inventario  
-> Necesito agregar una herramienta  
-> Consulta las máquinas disponibles  
-> Revisa proveedores de acero  
-
-⚠️ El registro y consulta real de inventario se conectará en el segundo commit.
-"""
+    return texto
 
 
-def iniciar_cotizacion():
-    return """
-🧾 **Nueva cotización iniciada**
-
-Para comenzar una cotización necesito algunos datos:
-
-1. Nombre del cliente.
-2. Tipo de pieza.
-3. Material requerido.
-4. Cantidad.
-5. Medidas aproximadas.
-6. Proceso requerido, si lo conoces.
-
-Ejemplo:
-
-> Cliente: FlexoPrint GDL, necesita 2 engranes rectos de acero 1018 de 4 pulgadas.
-
-Por ahora este flujo solo identifica la intención. En el segundo commit se conectará con la base de datos y después con el motor de inferencia.
-"""
+def respuesta_materiales() -> str:
+    filas = db.obtener_materiales()
+    return "📦 **Materiales registrados**\n\n" + tabla_markdown(
+        filas,
+        ["id_material", "codigo_material", "material", "perfil", "cantidad_disponible", "unidad_inventario", "estado"],
+    )
 
 
-def detectar_intencion(mensaje):
-    """
-    Detecta comandos y lenguaje natural básico.
-    Esta versión pertenece al primer commit.
-    Más adelante puede sustituirse por Gemini, Ollama o un clasificador más avanzado.
-    """
+def respuesta_herramientas() -> str:
+    filas = db.obtener_herramientas()
+    return "🧰 **Herramientas registradas**\n\n" + tabla_markdown(
+        filas,
+        ["id_herramienta", "codigo_herramienta", "nombre_herramienta", "tipo", "stock_unidades", "estado"],
+    )
 
+
+def respuesta_maquinas() -> str:
+    filas = db.obtener_maquinas()
+    return "🏭 **Máquinas del taller**\n\n" + tabla_markdown(
+        filas,
+        ["id_maquina", "codigo_maquina", "nombre_maquina", "tipo_maquina", "estado"],
+    )
+
+
+def respuesta_proveedores() -> str:
+    filas = db.obtener_proveedores()
+    return "🚚 **Proveedores registrados**\n\n" + tabla_markdown(
+        filas,
+        ["id_proveedor", "nombre_proveedor", "tipo_proveedor", "especialidad", "estado"],
+    )
+
+
+def respuesta_cotizaciones() -> str:
+    filas = db.obtener_cotizaciones_pendientes()
+    return "📝 **Cotizaciones pendientes por aprobar**\n\n" + tabla_markdown(
+        filas,
+        ["id_cotizacion", "folio", "cliente_nombre", "pieza_solicitada", "precio_final", "estado_orden"],
+    )
+
+
+def respuesta_produccion() -> str:
+    filas = db.obtener_ordenes_produccion()
+    return "🏭 **Órdenes aprobadas o en producción**\n\n" + tabla_markdown(
+        filas,
+        ["id_cotizacion", "folio", "cliente_nombre", "pieza_solicitada", "fecha_entrega_estimada", "estado_orden"],
+    )
+
+
+def detectar_intencion(mensaje: str) -> str:
     texto = mensaje.lower().strip()
 
-    # Comandos directos
-    if texto == "/help":
-        return "ayuda"
+    comandos = {
+        "/help": "ayuda",
+        "/inventario": "inventario",
+        "/materiales": "materiales",
+        "/herramientas": "herramientas",
+        "/maquinas": "maquinas",
+        "/máquinas": "maquinas",
+        "/proveedores": "proveedores",
+        "/cotizaciones": "cotizaciones",
+        "/produccion": "produccion",
+        "/producción": "produccion",
+        "/limpiar": "limpiar",
+    }
 
-    if texto == "/cotizaciones":
-        return "cotizaciones_pendientes"
+    if texto in comandos:
+        return comandos[texto]
 
-    if texto == "/produccion":
+    if any(p in texto for p in ["cotizaciones pendientes", "por aprobar", "faltan por aprobar", "sin aprobar"]):
+        return "cotizaciones"
+
+    if any(p in texto for p in ["produccion", "producción", "aprobadas", "en produccion", "en producción"]):
         return "produccion"
 
-    if texto == "/inventario":
+    if any(p in texto for p in ["herramienta", "herramientas"]):
+        return "herramientas"
+
+    if any(p in texto for p in ["material", "materiales", "acero", "aluminio", "bronce", "cobre"]):
+        return "materiales"
+
+    if any(p in texto for p in ["maquina", "máquina", "maquinas", "máquinas", "torno", "fresadora"]):
+        return "maquinas"
+
+    if any(p in texto for p in ["proveedor", "proveedores"]):
+        return "proveedores"
+
+    if any(p in texto for p in ["inventario", "stock", "almacen", "almacén"]):
         return "inventario"
 
-    if texto == "/nueva_cotizacion":
-        return "nueva_cotizacion"
-
-    if texto == "/limpiar":
-        return "limpiar"
-
-    # Lenguaje natural: cotización
-    palabras_cotizacion = [
-        "cotizacion",
-        "cotización",
-        "cotizar",
-        "presupuesto",
-        "precio",
-        "cuanto cuesta",
-        "cuánto cuesta",
-        "necesito realizar una cotizacion",
-        "necesito realizar una cotización",
-        "hacer una cotizacion",
-        "hacer una cotización"
-    ]
-
-    if any(palabra in texto for palabra in palabras_cotizacion):
-        return "nueva_cotizacion"
-
-    # Lenguaje natural: cotizaciones pendientes
-    palabras_pendientes = [
-        "cotizaciones pendientes",
-        "pendientes por aprobar",
-        "faltan por aprobar",
-        "por aprobar",
-        "sin aprobar"
-    ]
-
-    if any(palabra in texto for palabra in palabras_pendientes):
-        return "cotizaciones_pendientes"
-
-    # Lenguaje natural: producción
-    palabras_produccion = [
-        "produccion",
-        "producción",
-        "aprobadas",
-        "ordenes aprobadas",
-        "órdenes aprobadas",
-        "trabajos aprobados",
-        "en produccion",
-        "en producción"
-    ]
-
-    if any(palabra in texto for palabra in palabras_produccion):
-        return "produccion"
-
-    # Lenguaje natural: inventario
-    palabras_inventario = [
-        "inventario",
-        "herramienta",
-        "herramientas",
-        "material",
-        "materiales",
-        "maquina",
-        "máquina",
-        "maquinas",
-        "máquinas",
-        "proveedor",
-        "proveedores",
-        "stock"
-    ]
-
-    if any(palabra in texto for palabra in palabras_inventario):
-        return "inventario"
+    if any(p in texto for p in ["agregar", "registrar", "guardar", "actualizar"]):
+        return "gestion"
 
     return "desconocido"
 
 
-def generar_respuesta(mensaje):
+def generar_respuesta(mensaje: str) -> str:
     intencion = detectar_intencion(mensaje)
 
-    if intencion == "ayuda":
-        return obtener_ayuda()
+    try:
+        if intencion == "ayuda":
+            return obtener_ayuda()
+        if intencion == "inventario":
+            return respuesta_inventario()
+        if intencion == "materiales":
+            return respuesta_materiales()
+        if intencion == "herramientas":
+            return respuesta_herramientas()
+        if intencion == "maquinas":
+            return respuesta_maquinas()
+        if intencion == "proveedores":
+            return respuesta_proveedores()
+        if intencion == "cotizaciones":
+            return respuesta_cotizaciones()
+        if intencion == "produccion":
+            return respuesta_produccion()
+        if intencion == "limpiar":
+            return "__LIMPIAR_CHAT__"
+        if intencion == "gestion":
+            return """
+Puedo ayudarte a consultar datos desde el chat, pero para **guardar o actualizar** usa la pestaña **Inventario y gestión**.
 
-    if intencion == "cotizaciones_pendientes":
-        return obtener_cotizaciones_demo()
+Ahí puedes:
 
-    if intencion == "produccion":
-        return obtener_produccion_demo()
+- Agregar materiales.
+- Actualizar stock de materiales.
+- Agregar herramientas.
+- Actualizar stock/estado de herramientas.
+- Cambiar estado de máquinas.
+- Registrar proveedores.
+- Aprobar cotizaciones para pasarlas a producción.
+"""
 
-    if intencion == "inventario":
-        return obtener_inventario_demo()
-
-    if intencion == "nueva_cotizacion":
-        return iniciar_cotizacion()
-
-    if intencion == "limpiar":
-        return "__LIMPIAR_CHAT__"
+    except db.DatabaseError as exc:
+        return f"⚠️ {exc}"
 
     return """
 No estoy seguro de qué necesitas hacer.
 
 Puedes escribir `/help` para ver los comandos disponibles.
 
-También puedes probar con frases como:
+Ejemplos:
 
-- Necesito realizar una cotización.
-- Quiero ver cotizaciones pendientes.
-- Muéstrame la producción.
-- Necesito revisar el inventario.
+- `/inventario`
+- `/herramientas`
+- `/materiales`
+- `/cotizaciones`
+- `/produccion`
 """
