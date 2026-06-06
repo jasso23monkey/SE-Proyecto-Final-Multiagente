@@ -407,3 +407,161 @@ def actualizar_estado_cotizacion(id_cotizacion: int, estado_orden: str, observac
         """,
         (estado_orden, observaciones or None, id_cotizacion),
     )
+
+# ============================================================
+# AGENTE 2 - MOTOR DE INFERENCIA
+# ============================================================
+
+def obtener_plantillas() -> list[dict[str, Any]]:
+    return ejecutar_select(
+        """
+        SELECT id_plantilla, nombre_pieza, categoria, descripcion,
+               id_material_sugerido, perfil_requerido, operaciones_base_json,
+               herramientas_sugeridas_json, maquinas_sugeridas_json,
+               parametros_base_json, subpiezas_requeridas_json,
+               dificultad, tiempo_base_horas, estado
+        FROM Plantillas_Piezas
+        WHERE estado = 'ACTIVA'
+        ORDER BY nombre_pieza;
+        """
+    )
+
+
+def obtener_plantilla_por_nombre(nombre_pieza: str) -> dict[str, Any] | None:
+    filas = ejecutar_select(
+        """
+        SELECT id_plantilla, nombre_pieza, categoria, descripcion,
+               id_material_sugerido, perfil_requerido, operaciones_base_json,
+               herramientas_sugeridas_json, maquinas_sugeridas_json,
+               parametros_base_json, subpiezas_requeridas_json,
+               dificultad, tiempo_base_horas, estado
+        FROM Plantillas_Piezas
+        WHERE LOWER(nombre_pieza) = LOWER(?)
+          AND estado = 'ACTIVA'
+        LIMIT 1;
+        """,
+        (nombre_pieza.strip(),)
+    )
+
+    return filas[0] if filas else None
+
+
+def obtener_tarifas_activas() -> list[dict[str, Any]]:
+    return ejecutar_select(
+        """
+        SELECT id_tarifa, concepto_proceso, tipo_tarifa, costo_base,
+               unidad_cobro, margen_utilidad_porcentaje, tiempo_minimo_horas,
+               descripcion, estado
+        FROM Tarifas_Taller
+        WHERE estado = 'ACTIVA'
+        ORDER BY concepto_proceso;
+        """
+    )
+
+
+def crear_cotizacion(
+    folio: str,
+    id_usuario_creador: int | None,
+    cliente_nombre: str,
+    cliente_contacto: str | None,
+    cliente_correo: str | None,
+    cliente_telefono: str | None,
+    id_plantilla: int | None,
+    pieza_solicitada: str,
+    tipo_servicio: str,
+    cantidad_piezas: int,
+    dimensiones_json: str,
+    requerimientos_cliente: str | None,
+    material_final: str | None,
+    procesos_finales_json: str,
+    costo_materiales: float,
+    costo_herramientas: float,
+    costo_maquinado: float,
+    costo_servicios_externos: float,
+    costo_total: float,
+    margen_utilidad_porcentaje: float,
+    precio_final: float,
+    horas_maquinado_estimadas: float,
+    fecha_entrega_estimada: str | None,
+    hoja_ruta_instrucciones: str | None,
+    explicacion_inferencia: str | None,
+    estado_orden: str,
+    observaciones: str | None
+) -> int:
+    return ejecutar_accion(
+        """
+        INSERT INTO Cotizaciones_Ordenes
+        (folio, id_usuario_creador, cliente_nombre, cliente_contacto,
+         cliente_correo, cliente_telefono, id_plantilla, pieza_solicitada,
+         tipo_servicio, cantidad_piezas, dimensiones_json,
+         requerimientos_cliente, material_final, procesos_finales_json,
+         costo_materiales, costo_herramientas, costo_maquinado,
+         costo_servicios_externos, costo_total, margen_utilidad_porcentaje,
+         precio_final, horas_maquinado_estimadas, fecha_entrega_estimada,
+         hoja_ruta_instrucciones, explicacion_inferencia, estado_orden,
+         observaciones)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """,
+        (
+            folio,
+            id_usuario_creador,
+            cliente_nombre,
+            cliente_contacto,
+            cliente_correo,
+            cliente_telefono,
+            id_plantilla,
+            pieza_solicitada,
+            tipo_servicio,
+            cantidad_piezas,
+            dimensiones_json,
+            requerimientos_cliente,
+            material_final,
+            procesos_finales_json,
+            costo_materiales,
+            costo_herramientas,
+            costo_maquinado,
+            costo_servicios_externos,
+            costo_total,
+            margen_utilidad_porcentaje,
+            precio_final,
+            horas_maquinado_estimadas,
+            fecha_entrega_estimada,
+            hoja_ruta_instrucciones,
+            explicacion_inferencia,
+            estado_orden,
+            observaciones
+        )
+    )
+
+
+def registrar_historial_inferencia(
+    id_cotizacion: int | None,
+    agente_origen: str,
+    entrada_json: str,
+    regla_evaluada: str | None,
+    condiciones_cumplidas_json: str | None,
+    resultado_json: str,
+    explicacion_generada: str,
+    confianza: float,
+    requiere_validacion: int
+) -> int:
+    return ejecutar_accion(
+        """
+        INSERT INTO Historial_Inferencias
+        (id_cotizacion, agente_origen, entrada_json, regla_evaluada,
+         condiciones_cumplidas_json, resultado_json, explicacion_generada,
+         confianza, requiere_validacion, validado)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0);
+        """,
+        (
+            id_cotizacion,
+            agente_origen,
+            entrada_json,
+            regla_evaluada,
+            condiciones_cumplidas_json,
+            resultado_json,
+            explicacion_generada,
+            confianza,
+            requiere_validacion
+        )
+    )

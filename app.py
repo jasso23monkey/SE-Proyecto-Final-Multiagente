@@ -1,6 +1,7 @@
 import streamlit as st
 
 from src import db
+from src import agente_2_motor
 from src.agente_1_chatbot import obtener_mensaje_bienvenida, generar_respuesta
 
 
@@ -461,14 +462,115 @@ def mostrar_cotizaciones_produccion():
     with col2:
         mostrar_tabla("Aprobadas / en producción", produccion)
 
+def vista_agente_2():
+    st.subheader("🧮 Agente 2 - Motor de inferencia inicial")
+    st.write("""
+    Esta sección genera una cotización preliminar usando la base de conocimiento,
+    inventario, tarifas y reglas básicas del sistema experto.
+    """)
+
+    try:
+        plantillas = db.obtener_plantillas()
+    except Exception as error:
+        st.error(f"No se pudieron cargar las plantillas: {error}")
+        return
+
+    nombres_plantillas = [p["nombre_pieza"] for p in plantillas]
+
+    with st.form("form_agente_2_cotizacion"):
+        cliente_nombre = st.text_input("Nombre del cliente")
+
+        pieza_solicitada = st.selectbox(
+            "Pieza solicitada",
+            options=nombres_plantillas if nombres_plantillas else ["pieza_personalizada"]
+        )
+
+        tipo_servicio = st.selectbox(
+            "Tipo de servicio",
+            ["FABRICACION", "REPARACION", "MODIFICACION", "MANTENIMIENTO"]
+        )
+
+        cantidad_piezas = st.number_input(
+            "Cantidad de piezas",
+            min_value=1,
+            step=1
+        )
+
+        material_solicitado = st.text_input(
+            "Material solicitado",
+            value="Acero 1018"
+        )
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            diametro = st.text_input("Diámetro / medida principal", value="")
+
+        with col2:
+            largo = st.text_input("Largo", value="")
+
+        with col3:
+            tolerancia = st.text_input("Tolerancia", value="")
+
+        requerimientos_cliente = st.text_area(
+            "Requerimientos del cliente",
+            placeholder="Ejemplo: requiere ajuste para balero, acabado fino, ranura interna, etc."
+        )
+
+        generar = st.form_submit_button("Generar cotización preliminar")
+
+    if generar:
+        dimensiones = {
+            "diametro_medida_principal": diametro,
+            "largo": largo,
+            "tolerancia": tolerancia
+        }
+
+        try:
+            resultado = agente_2_motor.generar_cotizacion_preliminar(
+                cliente_nombre=cliente_nombre,
+                pieza_solicitada=pieza_solicitada,
+                tipo_servicio=tipo_servicio,
+                cantidad_piezas=int(cantidad_piezas),
+                material_solicitado=material_solicitado,
+                requerimientos_cliente=requerimientos_cliente,
+                dimensiones=dimensiones
+            )
+
+            st.success(f"Cotización generada correctamente: {resultado['folio']}")
+
+            col_a, col_b, col_c = st.columns(3)
+
+            with col_a:
+                st.metric("Estado", resultado["estado"])
+
+            with col_b:
+                st.metric("Precio final estimado", f"${resultado['precio_final']:.2f}")
+
+            with col_c:
+                st.metric("Horas estimadas", resultado["horas_maquinado_estimadas"])
+
+            st.subheader("Explicación del Agente 2")
+            st.markdown(resultado["explicacion"])
+
+            st.subheader("Hoja de ruta preliminar")
+            st.code(resultado["hoja_ruta"])
+
+            if resultado["advertencias"]:
+                st.warning("La cotización requiere revisión.")
+                for advertencia in resultado["advertencias"]:
+                    st.write(f"- {advertencia}")
+
+        except Exception as error:
+            st.error(f"No se pudo generar la cotización: {error}")
 
 def main():
     inicializar_estado()
     mostrar_header()
     mostrar_sidebar()
 
-    tab_chat, tab_inventario, tab_cotizaciones = st.tabs(
-        ["💬 Chat", "📦 Inventario y gestión", "📝 Cotizaciones y producción"]
+    tab_chat, tab_inventario, tab_cotizaciones, tab_agente_2 = st.tabs(
+        ["💬 Chat", "📦 Inventario y gestión", "📝 Cotizaciones y producción", "🧮 Agente 2"]
     )
 
     with tab_chat:
@@ -480,6 +582,11 @@ def main():
     with tab_cotizaciones:
         mostrar_cotizaciones_produccion()
 
+    with tab_agente_2:
+        vista_agente_2()
+
 
 if __name__ == "__main__":
     main()
+
+
