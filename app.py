@@ -63,7 +63,7 @@ def mostrar_sidebar():
 
         st.subheader("Agentes")
         st.write("✅ Agente 1: Atención al cliente")
-        st.write("🟨 Agente 2: Motor de inferencia, estructura pendiente")
+        st.write("✅ Agente 2: Motor de inferencia v2 — modelo físico por etapas")
         st.write("🟨 Agente 3: Supervisor, estructura pendiente")
 
         st.divider()
@@ -501,15 +501,18 @@ def vista_agente_2():
             value="Acero 1018"
         )
 
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
 
         with col1:
-            diametro = st.text_input("Diámetro / medida principal", value="")
+            diametro = st.text_input("Diámetro exterior (pulgadas)", value="", placeholder="ej. 4")
 
         with col2:
-            largo = st.text_input("Largo", value="")
+            largo = st.text_input("Largo (pulgadas)", value="", placeholder="ej. 2")
 
         with col3:
+            num_dientes = st.text_input("Núm. dientes (solo engranes)", value="", placeholder="ej. 99")
+
+        with col4:
             tolerancia = st.text_input("Tolerancia", value="")
 
         requerimientos_cliente = st.text_area(
@@ -523,6 +526,8 @@ def vista_agente_2():
         dimensiones = {
             "diametro_medida_principal": diametro,
             "largo": largo,
+            "num_dientes": num_dientes,
+            "ancho": largo,
             "tolerancia": tolerancia
         }
 
@@ -537,27 +542,59 @@ def vista_agente_2():
                 dimensiones=dimensiones
             )
 
-            st.success(f"Cotización generada correctamente: {resultado['folio']}")
+            st.success(f"Cotización generada: **{resultado['folio']}**")
 
-            col_a, col_b, col_c = st.columns(3)
-
+            # ── Métricas principales ──────────────────────────────────────
+            col_a, col_b, col_c, col_d = st.columns(4)
             with col_a:
                 st.metric("Estado", resultado["estado"])
-
             with col_b:
-                st.metric("Precio final estimado", f"${resultado['precio_final']:.2f}")
-
+                horas_txt = resultado.get("horas_texto", f"{resultado['horas_maquinado_estimadas']:.2f} h")
+                st.metric("Tiempo estimado", horas_txt)
             with col_c:
-                st.metric("Horas estimadas", resultado["horas_maquinado_estimadas"])
+                st.metric("Precio final", f"${resultado['precio_final']:.2f}")
+            with col_d:
+                st.metric("Entrega estimada", resultado["fecha_entrega_estimada"])
 
-            st.subheader("Explicación del Agente 2")
+            # ── Desglose por etapa ────────────────────────────────────────
+            st.subheader("🔩 Desglose de maquinado por etapa")
+            if resultado.get("detalle_procesos"):
+                import pandas as pd
+                filas = []
+                for paso in resultado["detalle_procesos"]:
+                    h = paso["horas_total"]
+                    hh = int(h); mm = round((h - hh) * 60)
+                    tiempo_txt = f"{hh}h {mm}min" if hh > 0 and mm > 0 else (f"{hh}h" if hh > 0 else f"{mm}min")
+                    filas.append({
+                        "Etapa":        paso["etapa"],
+                        "Descripción":  paso["descripcion"],
+                        "h/pieza":      f"{paso['horas_por_pieza']:.3f}",
+                        "Tiempo total": tiempo_txt,
+                        "Tarifa $/h":   f"${paso['tarifa_hora']:.0f}",
+                        "Subtotal":     f"${paso['costo_estimado']:.2f}",
+                    })
+                st.dataframe(pd.DataFrame(filas), use_container_width=True, hide_index=True)
+
+            # ── Resumen de costos ─────────────────────────────────────────
+            st.subheader("💰 Resumen de costos")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write(f"**Material:** ${resultado.get('costo_total', 0) - resultado.get('costo_total', resultado['precio_final'] / 1.2):.2f}")
+                st.write(f"**Maquinado:** ver desglose arriba")
+            with col2:
+                st.write(f"**Precio final (con margen):** **${resultado['precio_final']:.2f}**")
+
+            # ── Explicación completa ──────────────────────────────────────
+            st.subheader("🧠 Explicación del Agente 2")
             st.markdown(resultado["explicacion"])
 
-            st.subheader("Hoja de ruta preliminar")
+            # ── Hoja de ruta ──────────────────────────────────────────────
+            st.subheader("📋 Hoja de ruta")
             st.code(resultado["hoja_ruta"])
 
+            # ── Advertencias ──────────────────────────────────────────────
             if resultado["advertencias"]:
-                st.warning("La cotización requiere revisión.")
+                st.warning("⚠️ La cotización requiere revisión antes de aprobar.")
                 for advertencia in resultado["advertencias"]:
                     st.write(f"- {advertencia}")
 
