@@ -2,6 +2,7 @@ import streamlit as st
 
 from src import db
 from src import agente_2_motor
+from src import agente_3_supervisor
 from src.agente_1_chatbot import obtener_mensaje_bienvenida, generar_respuesta
 
 
@@ -606,9 +607,12 @@ def main():
     mostrar_header()
     mostrar_sidebar()
 
-    tab_chat, tab_inventario, tab_cotizaciones, tab_agente_2 = st.tabs(
-        ["💬 Chat", "📦 Inventario y gestión", "📝 Cotizaciones y producción", "🧮 Agente 2"]
+    tab_chat, tab_inventario, tab_cotizaciones, tab_agente_2, tab_agente_3 = st.tabs(
+        ["💬 Chat", "📦 Inventario y gestión", "📝 Cotizaciones y producción", "🧮 Agente 2", "✅ Agente 3"]
     )
+
+    with tab_agente_3:
+        vista_agente_3()
 
     with tab_chat:
         mostrar_chat()
@@ -621,6 +625,67 @@ def main():
 
     with tab_agente_2:
         vista_agente_2()
+
+def vista_agente_3():
+    st.subheader("✅ Agente 3 - Supervisor y explicador")
+    st.write("""
+    Este agente revisa la cotización generada por el Agente 2, explica la toma de decisiones
+    y permite validar si la cotización pasa a producción.
+    """)
+
+    try:
+        cotizaciones = db.obtener_cotizaciones_para_supervisor()
+    except Exception as error:
+        st.error(f"No se pudieron cargar las cotizaciones: {error}")
+        return
+
+    if not cotizaciones:
+        st.info("No hay cotizaciones disponibles para supervisar.")
+        return
+
+    st.dataframe(cotizaciones, use_container_width=True)
+
+    opciones = {
+        f"{c['folio']} - {c['cliente_nombre']} - {c['pieza_solicitada']} - {c['estado_orden']}": c["id_cotizacion"]
+        for c in cotizaciones
+    }
+
+    seleccion = st.selectbox(
+        "Selecciona una cotización para revisar",
+        list(opciones.keys())
+    )
+
+    id_cotizacion = opciones[seleccion]
+    cotizacion = db.obtener_cotizacion_por_id(id_cotizacion)
+
+    if cotizacion:
+        explicacion = agente_3_supervisor.generar_explicacion_supervisor(cotizacion)
+
+        st.markdown(explicacion)
+
+        st.divider()
+
+        nuevo_estado = st.selectbox(
+            "Decisión del supervisor",
+            ["APROBADO", "EN_PRODUCCION", "CANCELADA", "VALIDACION_PENDIENTE"]
+        )
+
+        observaciones = st.text_area(
+            "Observaciones del supervisor",
+            placeholder="Ejemplo: Se aprueba porque el costo y tiempo son razonables."
+        )
+
+        if st.button("Guardar decisión del Agente 3"):
+            try:
+                agente_3_supervisor.validar_cotizacion(
+                    id_cotizacion=id_cotizacion,
+                    nuevo_estado=nuevo_estado,
+                    observaciones_supervisor=observaciones
+                )
+                st.success(f"Cotización actualizada a estado: {nuevo_estado}")
+                st.rerun()
+            except Exception as error:
+                st.error(f"No se pudo validar la cotización: {error}")
 
 
 if __name__ == "__main__":

@@ -395,19 +395,7 @@ def obtener_ordenes_produccion() -> list[dict[str, Any]]:
         ORDER BY fecha_entrega_estimada ASC, fecha_creacion DESC;
         """
     )
-
-
-def actualizar_estado_cotizacion(id_cotizacion: int, estado_orden: str, observaciones: str | None = None) -> None:
-    ejecutar_accion(
-        """
-        UPDATE Cotizaciones_Ordenes
-        SET estado_orden = ?,
-            observaciones = COALESCE(?, observaciones)
-        WHERE id_cotizacion = ?;
-        """,
-        (estado_orden, observaciones or None, id_cotizacion),
-    )
-
+s
 # ============================================================
 # AGENTE 2 - MOTOR DE INFERENCIA
 # ============================================================
@@ -533,6 +521,20 @@ def crear_cotizacion(
         )
     )
 
+def actualizar_estado_cotizacion(id_cotizacion, nuevo_estado, observaciones=""):
+    return ejecutar_accion(
+        """
+        UPDATE Cotizaciones_Ordenes
+        SET estado_orden = ?,
+            observaciones = COALESCE(observaciones, '') || ?
+        WHERE id_cotizacion = ?;
+        """,
+        (
+            nuevo_estado,
+            "\n[Agente 3] " + observaciones if observaciones else "",
+            id_cotizacion
+        )
+    )
 
 def registrar_historial_inferencia(
     id_cotizacion: int | None,
@@ -565,3 +567,31 @@ def registrar_historial_inferencia(
             requiere_validacion
         )
     )
+
+def obtener_cotizacion_por_id(id_cotizacion):
+    filas = ejecutar_select(
+        """
+        SELECT *
+        FROM Cotizaciones_Ordenes
+        WHERE id_cotizacion = ?
+        LIMIT 1;
+        """,
+        (id_cotizacion,)
+    )
+    return filas[0] if filas else None
+
+
+def obtener_cotizaciones_para_supervisor():
+    return ejecutar_select(
+        """
+        SELECT id_cotizacion, folio, cliente_nombre, pieza_solicitada,
+               material_final, cantidad_piezas, costo_total, precio_final,
+               horas_maquinado_estimadas, fecha_entrega_estimada, estado_orden
+        FROM Cotizaciones_Ordenes
+        WHERE estado_orden IN ('COTIZADO', 'VALIDACION_PENDIENTE', 'PENDIENTE_APROBACION', 'APROBADO')
+        ORDER BY id_cotizacion DESC;
+        """
+    )
+
+
+
