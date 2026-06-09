@@ -395,7 +395,7 @@ def obtener_ordenes_produccion() -> list[dict[str, Any]]:
         ORDER BY fecha_entrega_estimada ASC, fecha_creacion DESC;
         """
     )
-s
+
 # ============================================================
 # AGENTE 2 - MOTOR DE INFERENCIA
 # ============================================================
