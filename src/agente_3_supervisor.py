@@ -77,10 +77,16 @@ Fecha estimada de entrega:
 |---|---|---:|---:|
 """
         for proceso in procesos:
-            operacion = proceso.get("operacion") or proceso.get("proceso") or "Operación"
-            maquina = proceso.get("maquina") or proceso.get("proceso") or "No especificado"
-            tiempo = proceso.get("tiempo_min") or proceso.get("horas_estimadas") or ""
-            costo = proceso.get("costo") or proceso.get("costo_estimado") or 0
+            if isinstance(proceso, dict):
+                operacion = proceso.get("operacion") or proceso.get("proceso") or "Operación"
+                maquina = proceso.get("maquina") or proceso.get("proceso") or "No especificado"
+                tiempo = proceso.get("tiempo_min") or proceso.get("horas_estimadas") or ""
+                costo = proceso.get("costo") or proceso.get("costo_estimado") or 0
+            else:
+                operacion = str(proceso)
+                maquina = "No especificado"
+                tiempo = ""
+                costo = 0
 
             texto += f"| {operacion} | {maquina} | {tiempo} | {formatear_dinero(costo)} |\n"
 

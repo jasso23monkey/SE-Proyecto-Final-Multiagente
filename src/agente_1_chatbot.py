@@ -3,6 +3,7 @@ import unicodedata
 
 from src import db
 from src import agente_2_motor
+from src.agente_1_gemini import gemini_disponible, interpretar_mensaje_con_gemini
 
 
 # ============================================================
@@ -615,8 +616,60 @@ def detectar_intencion(mensaje: str) -> str:
 # RESPUESTA PRINCIPAL DEL AGENTE 1
 # ============================================================
 
+def responder_cotizacion_con_datos(datos: dict) -> str:
+    faltantes = []
+
+    if not datos.get("cliente_nombre"):
+        faltantes.append("nombre del cliente")
+
+    if not datos.get("pieza_solicitada"):
+        faltantes.append("tipo de pieza")
+
+    if not datos.get("cantidad_piezas"):
+        faltantes.append("cantidad de piezas")
+
+    if not datos.get("material_solicitado"):
+        faltantes.append("material solicitado")
+
+    if faltantes:
+        return "Faltan datos para generar la cotización:\n" + "\n".join(f"- {f}" for f in faltantes)
+
+    resultado = agente_2_motor.generar_cotizacion_preliminar(
+        cliente_nombre=datos["cliente_nombre"],
+        pieza_solicitada=datos["pieza_solicitada"],
+        tipo_servicio=datos.get("tipo_servicio", "FABRICACION"),
+        cantidad_piezas=int(datos["cantidad_piezas"]),
+        material_solicitado=datos["material_solicitado"],
+        requerimientos_cliente=datos.get("requerimientos_cliente", ""),
+        dimensiones=datos.get("dimensiones", {})
+    )
+
+    return f"""
+✅ **Cotización generada con Gemini + Agente 2**
+
+**Folio:** {resultado["folio"]}  
+**Estado:** {resultado["estado"]}  
+**Precio final estimado:** ${resultado["precio_final"]:.2f}  
+**Horas estimadas:** {resultado["horas_maquinado_estimadas"]}
+
+### Explicación
+
+{resultado["explicacion"]}
+"""
+
+
+
 def generar_respuesta(mensaje: str) -> str:
     intencion = detectar_intencion(mensaje)
+    if gemini_disponible():
+        try:
+            datos_ia = interpretar_mensaje_con_gemini(mensaje)
+
+            if datos_ia.get("accion") == "generar_cotizacion":
+                return responder_cotizacion_con_datos(datos_ia)
+
+        except Exception:
+            pass
 
     try:
         if intencion == "ayuda":
