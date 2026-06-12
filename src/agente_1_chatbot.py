@@ -3,7 +3,7 @@ import unicodedata
 
 from src import db
 from src import agente_2_motor
-from src.agente_1_gemini import gemini_disponible, interpretar_mensaje_con_gemini
+from src.agente_1_gemini import gemini_disponible, interpretar_mensaje_con_gemini, redactar_respuesta_con_gemini, interpretar_intencion_general
 
 
 # ============================================================
@@ -447,6 +447,20 @@ def extraer_datos_cotizacion(texto: str) -> dict:
         "requerimientos_cliente": extraer_requerimientos(texto)
     }
 
+def respuesta_clientes() -> str:
+    filas = db.obtener_clientes_actuales()
+
+    return "👥 **Clientes registrados**\n\n" + tabla_markdown(
+        filas,
+        [
+            "cliente_nombre",
+            "cliente_contacto",
+            "cliente_correo",
+            "cliente_telefono",
+            "total_cotizaciones",
+            "ultima_cotizacion"
+        ],
+    )
 
 def responder_cotizacion_por_chat(texto: str) -> str:
     datos = extraer_datos_cotizacion(texto)
@@ -548,6 +562,7 @@ def detectar_intencion(mensaje: str) -> str:
         "/produccion": "produccion",
         "/producción": "produccion",
         "/limpiar": "limpiar",
+        "/clientes": "clientes", 
     }
 
     if texto in comandos:
@@ -590,6 +605,17 @@ def detectar_intencion(mensaje: str) -> str:
         "en producción"
     ]):
         return "produccion"
+    
+    if any(p in texto for p in [
+    "clientes",
+    "cliente actual",
+    "clientes actuales",
+    "lista de clientes",
+    "dame los clientes",
+    "ver clientes",
+    "mostrar clientes"
+    ]):
+        return "clientes"
 
     if any(p in texto for p in ["herramienta", "herramientas"]):
         return "herramientas"
@@ -608,6 +634,9 @@ def detectar_intencion(mensaje: str) -> str:
 
     if any(p in texto for p in ["agregar", "registrar", "guardar", "actualizar"]):
         return "gestion"
+    
+    if any(p in texto for p in ["clientes", "lista de clientes", "clientes actuales"]):
+        return "clientes"
 
     return "desconocido"
 
@@ -657,21 +686,68 @@ def responder_cotizacion_con_datos(datos: dict) -> str:
 {resultado["explicacion"]}
 """
 
+def responder_con_gemini_y_db(mensaje: str) -> str:
+    datos_ia = interpretar_intencion_general(mensaje)
+    accion = datos_ia.get("accion", "desconocido")
 
+    if accion == "consultar_inventario":
+        datos = db.obtener_resumen_sistema()
+        return redactar_respuesta_con_gemini(mensaje, accion, [datos])
+
+    if accion == "consultar_materiales":
+        datos = db.obtener_materiales()
+        return redactar_respuesta_con_gemini(mensaje, accion, datos)
+
+    if accion == "consultar_herramientas":
+        datos = db.obtener_herramientas()
+        return redactar_respuesta_con_gemini(mensaje, accion, datos)
+
+    if accion == "consultar_maquinas":
+        datos = db.obtener_maquinas()
+        return redactar_respuesta_con_gemini(mensaje, accion, datos)
+
+    if accion == "consultar_proveedores":
+        datos = db.obtener_proveedores()
+        return redactar_respuesta_con_gemini(mensaje, accion, datos)
+
+    if accion == "consultar_clientes":
+        datos = db.obtener_clientes_actuales()
+        return redactar_respuesta_con_gemini(mensaje, accion, datos)
+
+    if accion == "consultar_cotizaciones":
+        datos = db.obtener_cotizaciones_pendientes()
+        return redactar_respuesta_con_gemini(mensaje, accion, datos)
+
+    if accion == "consultar_produccion":
+        datos = db.obtener_ordenes_produccion()
+        return redactar_respuesta_con_gemini(mensaje, accion, datos)
+
+    if accion == "generar_cotizacion":
+        cot = datos_ia.get("cotizacion", {})
+        return responder_cotizacion_con_datos(cot)
+
+    return """
+No pude identificar qué información necesitas consultar.
+
+Puedes probar con:
+- Dame la lista de clientes
+- Muéstrame materiales disponibles
+- Qué proveedores tengo
+- Cotiza un engrane recto de acero 1018
+"""
 
 def generar_respuesta(mensaje: str) -> str:
-    intencion = detectar_intencion(mensaje)
-    if gemini_disponible():
-        try:
-            datos_ia = interpretar_mensaje_con_gemini(mensaje)
-
-            if datos_ia.get("accion") == "generar_cotizacion":
-                return responder_cotizacion_con_datos(datos_ia)
-
-        except Exception:
-            pass
-
     try:
+        # 1. Primero intentamos usar Gemini para interpretar lenguaje natural
+        if gemini_disponible():
+            try:
+                return responder_con_gemini_y_db(mensaje)
+            except Exception as error:
+                print(f"Gemini falló, se usará parser local: {error}")
+
+        # 2. Si Gemini no está disponible o falla, usamos el parser local
+        intencion = detectar_intencion(mensaje)
+
         if intencion == "ayuda":
             return obtener_ayuda()
 
@@ -692,6 +768,9 @@ def generar_respuesta(mensaje: str) -> str:
 
         if intencion == "proveedores":
             return respuesta_proveedores()
+
+        if intencion == "clientes":
+            return respuesta_clientes()
 
         if intencion == "cotizaciones":
             return respuesta_cotizaciones()
@@ -735,6 +814,7 @@ Ejemplos:
 - `/inventario`
 - `/herramientas`
 - `/materiales`
+- `/clientes`
 - `/cotizaciones`
 - `/produccion`
 

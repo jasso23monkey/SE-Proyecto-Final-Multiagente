@@ -144,6 +144,113 @@ def limpiar_json_respuesta(texto: str) -> str:
 
     return texto
 
+def limpiar_json(texto: str) -> str:
+    texto = texto.strip()
+    if texto.startswith("```"):
+        texto = texto.replace("```json", "").replace("```", "").strip()
+    return texto
+
+
+def interpretar_intencion_general(mensaje: str) -> dict:
+    if not API_KEY:
+        raise RuntimeError("No se encontró GEMINI_API_KEY")
+
+    client = genai.Client(api_key=API_KEY)
+
+    prompt = f"""
+Eres el Agente 1 de ForgeFlow ERP.
+
+Convierte el mensaje del usuario en JSON.
+
+Acciones permitidas:
+- consultar_inventario
+- consultar_materiales
+- consultar_herramientas
+- consultar_maquinas
+- consultar_proveedores
+- consultar_clientes
+- consultar_cotizaciones
+- consultar_produccion
+- generar_cotizacion
+- desconocido
+
+Devuelve SOLO JSON válido.
+
+Formato:
+{{
+  "accion": "",
+  "filtros": {{
+    "material": "",
+    "estado": "",
+    "cliente": "",
+    "pieza": "",
+    "proveedor": "",
+    "maquina": ""
+  }},
+  "cotizacion": {{
+    "cliente_nombre": "",
+    "pieza_solicitada": "",
+    "cantidad_piezas": 1,
+    "material_solicitado": "",
+    "tipo_servicio": "FABRICACION",
+    "dimensiones": {{
+      "diametro_medida_principal": "",
+      "largo": "",
+      "ancho": "",
+      "num_dientes": "",
+      "tolerancia": ""
+    }},
+    "requerimientos_cliente": ""
+  }}
+}}
+
+Ejemplos:
+"muéstrame clientes" -> consultar_clientes
+"dame materiales disponibles" -> consultar_materiales
+"qué proveedores tengo" -> consultar_proveedores
+"cotiza un engrane recto..." -> generar_cotizacion
+
+Mensaje:
+{mensaje}
+"""
+
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt
+    )
+
+    return json.loads(limpiar_json(response.text))
+
+
+def redactar_respuesta_con_gemini(mensaje_usuario: str, accion: str, datos: list[dict]) -> str:
+    if not API_KEY:
+        return str(datos)
+
+    client = genai.Client(api_key=API_KEY)
+
+    prompt = f"""
+Eres el Agente 1 de ForgeFlow ERP.
+
+El usuario pidió:
+{mensaje_usuario}
+
+Acción detectada:
+{accion}
+
+Datos reales obtenidos desde SQLite:
+{json.dumps(datos, ensure_ascii=False, indent=2)}
+
+Redacta una respuesta clara, breve y útil en español.
+No inventes datos.
+Si no hay datos, dilo claramente.
+"""
+
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt
+    )
+
+    return response.text
 
 def interpretar_mensaje_con_gemini(mensaje: str) -> dict:
     """

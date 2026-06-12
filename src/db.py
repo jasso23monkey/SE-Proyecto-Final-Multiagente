@@ -192,6 +192,24 @@ def actualizar_stock_material(
         (cantidad_disponible, estado_final, observaciones or None, id_material),
     )
 
+def obtener_clientes_actuales():
+    return ejecutar_select(
+        """
+        SELECT
+            cliente_nombre,
+            MAX(cliente_contacto) AS cliente_contacto,
+            MAX(cliente_correo) AS cliente_correo,
+            MAX(cliente_telefono) AS cliente_telefono,
+            COUNT(*) AS total_cotizaciones,
+            MAX(fecha_creacion) AS ultima_cotizacion
+        FROM Cotizaciones_Ordenes
+        WHERE cliente_nombre IS NOT NULL
+        AND TRIM(cliente_nombre) != ''
+        GROUP BY LOWER(TRIM(cliente_nombre))
+        ORDER BY cliente_nombre;
+        """
+    )
+
 
 # ============================================================
 # INVENTARIO DE HERRAMIENTAS
