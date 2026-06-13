@@ -81,6 +81,48 @@ Responsabilidades:
 
 ---
 
+# Capturas del Sistema
+
+## Pantalla Principal
+
+La pantalla principal corresponde al Agente 1 (Atención e Interpretación), donde el usuario puede interactuar mediante lenguaje natural o comandos específicos para consultar información del sistema.
+
+![Pantalla Principal](docs/principal.jpg)
+
+---
+
+## Gestión de Inventario
+
+Módulo de consulta y administración del inventario del taller. Permite visualizar materiales, herramientas, máquinas y proveedores registrados en la base de datos.
+
+![Inventario](docs/inventario.jpg)
+
+---
+
+## Generación de Cotizaciones
+
+Vista del Agente 2 (Motor de Inferencia), encargado de analizar la solicitud del cliente, estimar tiempos de manufactura, calcular costos y generar una cotización preliminar.
+
+![Cotización](docs/cotizacion.jpg)
+
+---
+
+## Agente 3 - Supervisor y Explicador
+
+El Agente 3 analiza la información generada por el Agente 2, mostrando una explicación detallada de la toma de decisiones, los costos considerados y las reglas de inferencia aplicadas.
+
+### Explicación de la Cotización
+
+![Agente 3 - Explicación](docs/ctizacion_1.jpg)
+
+### Validación y Supervisión
+
+El supervisor puede aprobar, cancelar o enviar una cotización a producción, registrando además observaciones y validaciones realizadas.
+
+![Agente 3 - Validación](docs/ctizacion_2.jpg)
+
+---
+
 # Tecnologías Utilizadas
 
 * Python
@@ -128,6 +170,10 @@ GEMINI_API_KEY=TU_API_KEY
 ---
 
 # Ejecución
+
+```bash
+python seed.py
+```
 
 ```bash
 streamlit run app.py
