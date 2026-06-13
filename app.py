@@ -43,17 +43,8 @@ def mostrar_header():
     with st.expander("ℹ️ Estado del prototipo"):
         st.write(
             """
-            **Commit actual:** conexión con SQLite, consulta de inventario y gestión básica.
-
-            Funciones incluidas:
-
-            - Chat con comandos conectados a datos reales.
-            - Consulta de materiales, herramientas, máquinas, proveedores, cotizaciones y producción.
-            - Formularios para agregar materiales y herramientas.
-            - Actualización de stock y estado.
-            - Aprobación inicial de cotizaciones.
-
-            Todavía no se usa IA externa. El Agente 1 trabaja con comandos y reglas simples de lenguaje natural.
+                Permite consultar inventario, materiales, herramientas, máquinas, proveedores y clientes mediante lenguaje natural o comandos específicos, además de generar cotizaciones técnicas con explicación detallada del proceso de inferencia utilizado.
+            
             """
         )
 
@@ -65,7 +56,7 @@ def mostrar_sidebar():
         st.subheader("Agentes")
         st.write("✅ Agente 1: Atención al cliente")
         st.write("✅ Agente 2: Motor de inferencia v2 — modelo físico por etapas")
-        st.write("🟨 Agente 3: Supervisor, estructura pendiente")
+        st.write("✅ Agente 3: Supervisor")
 
         st.divider()
         st.subheader("Comandos")
@@ -464,7 +455,7 @@ def mostrar_cotizaciones_produccion():
         mostrar_tabla("Aprobadas / en producción", produccion)
 
 def vista_agente_2():
-    st.subheader("🧮 Agente 2 - Motor de inferencia inicial")
+    st.subheader("🧮 Agente 2 - Motor de inferencia")
     st.write("""
     Esta sección genera una cotización preliminar usando la base de conocimiento,
     inventario, tarifas y reglas básicas del sistema experto.

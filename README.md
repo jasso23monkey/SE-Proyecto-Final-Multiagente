@@ -2,18 +2,178 @@
 
 # ForgeFlow ERP
 
-### *Sistema Experto Multiagente para el Control Operativo, Gestión de Inventarios y Planificación de la Producción Metalmecánica*
+Sistema Experto Multiagente para Gestión Operativa, Cotizaciones e Inventario en Talleres de Manufactura.
 
-ForgeFlow ERP es un sistema de gestión empresarial inteligente (ERP) diseñado específicamente para optimizar el flujo de trabajo, la administración de inventarios y el proceso de cotización técnica en talleres de maquinado y manufactura flexográfica. 
+## Descripción
 
-A diferencia de los ERPs tradicionales basados en formularios rígidos, **ForgeFlow ERP** utiliza una arquitectura de **Sistemas Expertos Multiagente** que permite interactuar con el sistema mediante lenguaje natural y técnico (procesamiento a través de un chat interno), automatizando decisiones complejas de ingeniería, almacén y logística de piso.
+ForgeFlow ERP es un sistema experto multiagente desarrollado para talleres de manufactura, torno y fresadora.
+
+El sistema permite consultar inventario, materiales, herramientas, máquinas, proveedores y clientes mediante lenguaje natural o comandos específicos, además de generar cotizaciones técnicas con explicación detallada del proceso de inferencia utilizado.
+
+El proyecto fue desarrollado como parte de la asignatura de Sistemas Expertos.
 
 ---
 
-## 🚀 Características Principales
+# Objetivo
 
-* **Interfaz Basada en Chat Técnico (NLP):** Procesamiento de requerimientos internos mediante lenguaje natural. El sistema entiende conceptos técnicos reales del taller como *"rodillo de impresión"*, *"yunque"*, *"engrane con mamelón"*, *"ranurado de bronce"*, entre otros.
-* **Motor de Inferencia Recursivo (BOM):** Capacidad para desarmar lógicamente ensambles complejos. Si se solicita un rodillo compuesto, el motor analiza dinámicamente sus dependencias (materiales y herramental de las subpiezas) sin duplicar código.
-* **Discriminación de Servicios (Fabricación vs. Reparación):** El sistema adapta automáticamente las fórmulas de costos. Si es una reparación, descuenta el costo de materia prima y aplica tarifas específicas de ajuste de precisión.
-* **Planificador de Producción Automático (Scheduler):** Calcula los tiempos de maquinado estimados basándose en la dureza del material y la complejidad de la pieza, consultando la cola de trabajo actual en el taller para proyectar una **fecha de entrega real**.
-* **Gestión Dinámica de Inventario y Cadena de Suministro:** Permite actualizar existencias de materiales (rack) y herramientas (brocas, buriles, insertos) directamente desde el chat. Si detecta desabasto en una cotización, genera automáticamente una orden de compra en formato de texto para el proveedor adecuado.
+Desarrollar un sistema experto multiagente capaz de:
+
+* Interpretar solicitudes del usuario.
+* Consultar información almacenada en una base de datos SQLite.
+* Generar cotizaciones técnicas.
+* Explicar el razonamiento utilizado para generar dichas cotizaciones.
+* Facilitar la validación y supervisión de decisiones.
+
+---
+
+# Arquitectura Multiagente
+
+## Agente 1 — Atención e Interpretación
+
+Responsabilidades:
+
+* Recibir mensajes del usuario.
+* Interpretar comandos.
+* Interpretar lenguaje natural utilizando Gemini.
+* Consultar información de la base de datos.
+* Solicitar generación de cotizaciones.
+
+Ejemplos:
+
+* Mostrar inventario.
+* Mostrar materiales.
+* Mostrar proveedores.
+* Mostrar clientes.
+* Solicitar una cotización.
+
+---
+
+## Agente 2 — Motor de Inferencia
+
+Responsabilidades:
+
+* Analizar la solicitud de cotización.
+* Seleccionar plantilla de manufactura.
+* Calcular tiempos de proceso.
+* Estimar costos de material.
+* Estimar costos de maquinado.
+* Aplicar reglas de inferencia.
+* Generar hoja de ruta preliminar.
+
+Salidas:
+
+* Costo estimado.
+* Tiempo estimado.
+* Fecha estimada de entrega.
+* Explicación técnica.
+
+---
+
+## Agente 3 — Supervisor y Explicador
+
+Responsabilidades:
+
+* Analizar resultados generados por el Agente 2.
+* Explicar decisiones tomadas.
+* Mostrar desglose de costos.
+* Validar cotizaciones.
+* Aprobar o cancelar órdenes.
+
+---
+
+# Tecnologías Utilizadas
+
+* Python
+* Streamlit
+* SQLite
+* Google Gemini API
+* Pandas
+
+---
+
+# Base de Datos
+
+La información es almacenada mediante SQLite.
+
+Tablas principales:
+
+* Inventario_Taller
+* Inventario_Herramientas
+* Maquinas_Taller
+* Tarifas_Taller
+* Plantillas_Piezas
+* Proveedores_Taller
+* Reglas_Inferencia
+* Historial_Inferencias
+* Cotizaciones_Ordenes
+* Ordenes_Compra
+* Usuarios_Internos
+
+---
+
+# Instalación
+
+Instalar dependencias:
+
+```bash
+pip install -r requirements.txt
+```
+
+Configurar archivo `.env`:
+
+```env
+GEMINI_API_KEY=TU_API_KEY
+```
+
+---
+
+# Ejecución
+
+```bash
+streamlit run app.py
+```
+
+---
+
+# Comandos Disponibles
+
+* /help
+* /inventario
+* /materiales
+* /herramientas
+* /maquinas
+* /proveedores
+* /clientes
+* /cotizaciones
+* /produccion
+* /limpiar
+
+También pueden utilizarse consultas mediante lenguaje natural.
+
+Ejemplos:
+
+* Dame la lista de clientes.
+* Muéstrame los materiales disponibles.
+* ¿Qué proveedores tengo registrados?
+* Cotiza un engrane recto de acero 1018 para Taller López.
+
+---
+
+# Estado Actual
+
+Versión prototipo funcional.
+
+Características implementadas:
+
+* Consulta de información mediante chat.
+* Integración con Gemini.
+* Generación de cotizaciones.
+* Explicación de decisiones.
+* Validación mediante agente supervisor.
+
+Posibles características futuras:
+
+* Registro de nuevos elementos desde lenguaje natural.
+* Generación automática de órdenes de compra.
+* Reportes PDF.
+* Dashboard de producción.
